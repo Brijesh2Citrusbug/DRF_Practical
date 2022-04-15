@@ -15,21 +15,42 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255)
+
     class Meta:
         model = User
         fields = ('email', 'password',)
 
 
 class EventSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = EVENT
-        fields = ('name', 'address', 'organiser_name', 'organiser_email')
+        fields = ('id', 'name', 'address', 'organiser_name', 'organiser_email', )
 
-    def create(self, validated_data):
-        return EVENT.objects.create(**validated_data)
 
-    def update(self, instance, validated_data):
-        new_event = EVENT(**validated_data)
-        new_event.id = instance.id
-        new_event.save()
-        return new_event
+class EventDateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = EVENT_DATE
+        fields = ('date', )
+
+
+class AccessPointSerialiser(serializers.ModelSerializer):
+    class Meta:
+        model = ACCESS_POINT
+        fields = ['name']
+
+
+class EventSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EVENT_SLOT
+        fields = '__all__'
+
+
+class TimeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = TIME
+        fields = '__all__'
+
+
