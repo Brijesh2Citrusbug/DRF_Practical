@@ -109,9 +109,10 @@ class EVENT_SLOT(models.Model):
                                    null=True)
     access_point = models.ForeignKey(ACCESS_POINT, on_delete=models.CASCADE, related_name='access_point', blank=True,
                                      null=True)
+    is_booked = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.event_date)
+        return str(self.time)
 
 
 class SLOT_ACCESS_POINTS(models.Model):
