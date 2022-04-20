@@ -57,35 +57,21 @@ class EventList(APIView):
 
     def get(self, request, pk):
 
-        all_date = []
-        all_access_point = set()
-        data = {}
-
         queryset = EVENT.objects.filter(pk=pk)
         serializer = EventSerializer(queryset, many=True)
-        # for item in queryset:
-        #     data['event_name'] = item.name
-        #     data['event_address'] = item.address
-        #     data['organiser_name'] = item.organiser_name
-        #     data['organiser_email'] = item.organiser_email
 
-        event_date = EVENT_DATE.objects.select_related('event')
+        event_date = EVENT_DATE.objects.select_related('event').filter(event__pk=pk).distinct('date').values('date')
         date = EventDateSerializer(event_date, many=True)
-        print(date.data)
 
+        # access_point = EVENT_SLOT.objects.select_related('access_point').filter(event_date__event__pk=pk).distinct('access_point').values('access_point')
+        # point = AccessPointSerialiser(access_point, many=True)
+        # print(point.data)
 
-        # for date in event_date:
-        #     all_date.append(date.date)
-        #
-        #     event_slot = EVENT_SLOT.objects.filter(event_date=date)
-        #     for access_point in event_slot:
-        #         all_access_point.update(str(access_point.access_point))
+        accesspoints = EVENT_SLOT.objects.filter(event_date__event=queryset.first()).values_list('access_point__name',
+                                                                                                 flat=True).distinct()
 
-        # data['date'] = all_date
-        result = serializer.data
-        result['date'] = date.data
-        data['access_points'] = list(sorted(all_access_point))
-        return Response(result, status=status.HTTP_200_OK)
+        data= [serializer.data, date.data, list(accesspoints)]
+        return Response(data, status=status.HTTP_200_OK)
 
     def post(self, request):
 
@@ -98,17 +84,28 @@ class EventList(APIView):
         event = EVENT.objects.create(name=name, address=address, organiser_name=organiser_name,
                                      organiser_email=organiser_email)
 
+        dates = [item['date'] for item in data]
+        event_date = EVENT_DATE.objects.bulk_create(EVENT_DATE(event=event, date=i) for i in dates)
+
         for item in data:
-            event_date = EVENT_DATE.objects.create(event=event, date=item['date'])
-            active_points = ACCESS_POINT.objects.filter(active=True)
-            for point in item['access_points']:
-                access_point = active_points.get(pk=point)
+        #     active_points = ACCESS_POINT.objects.filter(active=True)
+        #     for point in item['access_points']:
+        #         access_point = active_points.get(pk=point)
+        #
+        #         for time_slot in TIME.objects.filter(time__gte=item['start_slot']).filter(time__lt=item['end_slot']):
+        #             event_slot = EVENT_SLOT.objects.bulk_create(EVENT_SLOT(time=time_slot, event_date=date,
+        #                                                    access_point=access_point) for date in event_date)
+        #
+        #             slot_access = SLOT_ACCESS_POINTS.objects.bulk_create(SLOT_ACCESS_POINTS(slot=slot, access_point=access_point)
+        #                                                                  for slot in event_slot)
 
-                for time_slot in TIME.objects.filter(time__gte=item['start_slot']).filter(time__lt=item['end_slot']):
-                    event_slot = EVENT_SLOT.objects.create(time=time_slot, event_date=event_date,
-                                                           access_point=access_point)
+            time_slot = TIME.objects.filter(time__gte=item['start_slot']).filter(time__lt=item['end_slot'])
 
-                    slot_access = SLOT_ACCESS_POINTS.objects.create(slot=event_slot, access_point=access_point)
+            event_slot = EVENT_SLOT.objects.bulk_create(EVENT_SLOT(time=slot, event_date=date,access_point=ACCESS_POINT.objects.get(pk=point)) for slot in time_slot for date
+                                                                in event_date for point in item['access_points'])
+
+            slot_access = SLOT_ACCESS_POINTS.objects.bulk_create(SLOT_ACCESS_POINTS(slot=slot, access_point=ACCESS_POINT.objects.get(pk=point))
+                                                                         for slot in event_slot for point in item['access_points'])
 
         return Response([], status=status.HTTP_201_CREATED)
 

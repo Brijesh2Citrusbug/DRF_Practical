@@ -30,7 +30,6 @@ class UserModelAdmin(BaseUserAdmin):
 
 
 admin.site.register(User, UserModelAdmin)
-
 admin.site.register(EVENT)
 admin.site.register(TIME)
 admin.site.register(EVENT_DATE)

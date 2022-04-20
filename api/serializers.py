@@ -38,7 +38,7 @@ class EventDateSerializer(serializers.ModelSerializer):
 class AccessPointSerialiser(serializers.ModelSerializer):
     class Meta:
         model = ACCESS_POINT
-        fields = ['name']
+        fields = ('id', 'name',)
 
 
 class EventSlotSerializer(serializers.ModelSerializer):
